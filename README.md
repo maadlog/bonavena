@@ -6,4 +6,12 @@ This project derives from an original source, called simply GenericDAO, born ins
 
 The aim of getting the code open is to provide a lightweight solution, alternative to bigger and slightly more convoluted frameworks, for simple and clean communication.
 
-Currently it supports both Oracle and SQLServer connections.
+We are currently in process of migrating to .NET Core
+
+Currently supported Engines:
+ - SQLServer 
+Future: 
+ - Oracle (estimated to be working by late 2017 with the introduction of ODP.NET)
+ - MySQL
+ - SQLite
+ - PostgreSQL
