@@ -14,7 +14,7 @@ We are currently in process of migrating to .NET Core
 
 Oracle estimated to be working by late 2017 with the introduction of [ODP.NET](http://www.oracle.com/technetwork/topics/dotnet/tech-info/odpnet-dotnet-core-sod-3628981.pdf)
 
-(.Net Framework 4.5)
+(.Net Framework >=4.5)
  - SQLServer 
  - Oracle
 
