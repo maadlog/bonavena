@@ -1,4 +1,4 @@
-## Bonavena
+# Bonavena
 Bonavena is a Lightweight DAO implementation for .NET
 
 Initialy developed to deliver DB communication wrapping ADO.NET to simplify data access, having simple configuration parameters and virtually no requirement of setting user permissions over the DB.
@@ -8,10 +8,19 @@ The aim of getting the code open is to provide a lightweight solution, alternati
 
 We are currently in process of migrating to .NET Core
 
-Currently supported Engines:
+### Support
+(NET.Core)
+ - SQLServer
+
+Oracle estimated to be working by late 2017 with the introduction of [ODP.NET](http://www.oracle.com/technetwork/topics/dotnet/tech-info/odpnet-dotnet-core-sod-3628981.pdf)
+
+(.Net Framework 4.5)
  - SQLServer 
-Future: 
- - Oracle (estimated to be working by late 2017 with the introduction of ODP.NET)
- - MySQL
- - SQLite
- - PostgreSQL
+ - Oracle
+
+### Roadmap
+ - Full SQLDb integration with:
+   + MySQL
+   + SQLite
+   + PostgreSQL
+ - Migration to NET.Core
