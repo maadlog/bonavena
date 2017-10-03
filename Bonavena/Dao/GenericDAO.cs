@@ -7,11 +7,11 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Transactions;
 using Bonavena.Database;
 using Bonavena.Helpers;
 using Bonavena.Enumerators;
 using Bonavena.Attributes;
+using Bonavena.Configuration;
 
 namespace Bonavena.Dao
 {
@@ -64,24 +64,32 @@ namespace Bonavena.Dao
         {
             //st.Start();
 
-            var spName = GetSpName(IsUpdate(entity) ? "spNameUpdate" : "spNameInsert");
+            var spName = GetSpName(IsUpdate(entity) ? "Update" : "Insert");
 
             int idEntity = 0;
 
             if (HasChilds())
             {
-
-                using (var scope = new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = System.Transactions.IsolationLevel.ReadCommitted }))
+                using (var scope = DataBase.BeginTransaction())
+                    //new TransactionScope(TransactionScopeOption.Required, new TransactionOptions { IsolationLevel = System.Transactions.IsolationLevel.ReadCommitted }))
                 {
-                    idEntity = DataBase.ExecuteSPNonQuery(spName, (p) => FillParameters(p, entity));
+                    try
+                    {
+                        idEntity = DataBase.ExecuteSPNonQuery(spName, (p) => FillParameters(p, entity));
 
-                    //Asigno a la clase el id generado
-                    if (!IsUpdate(entity))
-                        SetPropertyValue(Mapper.GetPropertyDBKey(entity.GetType())[0], idEntity, entity);
+                        //Asigno a la clase el id generado
+                        if (!IsUpdate(entity))
+                            SetPropertyValue(Mapper.GetPropertyDBKey(entity.GetType())[0], idEntity, entity);
 
-                    UpdateRelation(entity);
+                        UpdateRelation(entity);
 
-                    scope.Complete();
+                        scope.Commit();
+                    }
+                    catch(Exception ex)
+                    {
+                        scope.Rollback();
+                        throw ex;
+                    }
                 }
             }
             else
@@ -107,16 +115,16 @@ namespace Bonavena.Dao
 
         public static void Delete(T entity)
         {
-            DataBase.ExecuteSPNonQuery(GetSpName("spNameDelete"), p => FillParameters(p, entity));
+            DataBase.ExecuteSPNonQuery(GetSpName("Delete"), p => FillParameters(p, entity));
         }
 
         public static List<T> Find(T filterEntity)
         {
             List<T> lista = null;
 
-            DataBase.ExecuteSPWithResultSet(GetSpName("spNameSelect"), r =>
+            DataBase.ExecuteSPWithResultSet(GetSpName("Select"), r =>
             {
-                lista = (List<T>)BuildList(typeof(T), r);
+                lista = (List<T>)BuildList(typeof(T).GetTypeInfo(), r);
             }, p => FillParameters(p, filterEntity));
 
             return lista;
@@ -169,7 +177,7 @@ namespace Bonavena.Dao
 
                 var TableAtt = typeof(T).GetTypeInfo().GetCustomAttribute<TableAttribute>();
 
-                DataBase.ExecuteSPNonQuery(GetSpName("spNameDelete", TableAtt.PrefixSp, nameRelation), p => FillParametersRelation(p, idParent));
+                DataBase.ExecuteSPNonQuery(GetSpName("Delete", nameRelation), p => FillParametersRelation(p, idParent));
 
                 var lista = (IList)prop.GetValue(entity, null);
 
@@ -179,7 +187,7 @@ namespace Bonavena.Dao
                     {
                         var idChild = GetPropertyValue(Mapper.GetPropertyDBKey(item.GetType())[0], item);
                         //Considerando entidades de una sola clave
-                        DataBase.ExecuteSPNonQuery(GetSpName("spNameInsert", TableAtt.PrefixSp, nameRelation), p => FillParametersRelation(p, idParent, idChild));
+                        DataBase.ExecuteSPNonQuery(GetSpName("Insert", nameRelation), p => FillParametersRelation(p, idParent, idChild));
                     }
                 }
             }
@@ -188,7 +196,7 @@ namespace Bonavena.Dao
         private static bool HasChilds()
         {
             var res = typeof(T).GetProperties()
-                   .Any(p => typeof(IList).IsAssignableFrom(p.PropertyType) && p.PropertyType.IsGenericType);
+                   .Any(p => typeof(IList).IsAssignableFrom(p.PropertyType) && p.PropertyType.IsConstructedGenericType);
             return res;
         }
 
@@ -243,7 +251,7 @@ namespace Bonavena.Dao
         private static List<PropertyInfo> GetPropertiesList(object entity)
         {
             var res = entity.GetType().GetProperties()
-                   .Where(p => typeof(IList).IsAssignableFrom(p.PropertyType) && p.PropertyType.IsGenericType).ToList();
+                   .Where(p => typeof(IList).IsAssignableFrom(p.PropertyType) && p.PropertyType.IsConstructedGenericType).ToList();
             return res;
         }
 
@@ -302,7 +310,6 @@ namespace Bonavena.Dao
             else if (objeto.Length == 1)
             {
                 var res = tipo.GetProperty(propiedad).GetValue(entity);
-                //Debug.WriteLine("End: GetPropertyValue " + propiedad + " - " + st.ElapsedMilliseconds);
                 return res;
             }
             else
@@ -313,7 +320,6 @@ namespace Bonavena.Dao
 
         private static void SetPropertyValue(string propiedad, object valor, object entity)
         {
-            //Debug.WriteLine("Start: SetPropertyValue " + propiedad + " - " + st.ElapsedMilliseconds);
             Type tipo = entity.GetType();
             string[] objeto = propiedad.Split('.');
 
@@ -326,7 +332,6 @@ namespace Bonavena.Dao
                     {
                         tipo.GetProperty(propiedad).SetValue(entity, valor);
                     }
-                    //Debug.WriteLine("End: SetPropertyValue " + propiedad + " - " + st.ElapsedMilliseconds);
                     return;
                 case 2:
                     Type tipoProp = tipo.GetProperty(objeto[0]).PropertyType;
@@ -343,7 +348,6 @@ namespace Bonavena.Dao
                     {
                         tipoProp.GetProperty(objeto[1]).SetValue(instancia, valor);
                     }
-                    //Debug.WriteLine("End: SetPropertyValue " + propiedad + " - " + st.ElapsedMilliseconds);
                     return;
                 default:
                     Type tipoProp2 = tipo.GetProperty(objeto[0]).PropertyType;
@@ -362,7 +366,6 @@ namespace Bonavena.Dao
                         string prop = objeto.Skip(1).Aggregate((x, y) => x + "." + y);
                         SetPropertyValue(prop, valor, instancia2);
                     }
-                    //Debug.WriteLine("End: SetPropertyValue " + propiedad + " - " + st.ElapsedMilliseconds);
                     return;
             }
 
@@ -405,7 +408,6 @@ namespace Bonavena.Dao
             //busco el SP correspondiente a la relacion y genero las entidades de la coleccion tipada para luego asignarla a la propiedad.
             //Por ultimo, por cada entidad creada vuelva a llamar recursivamente a FillChilds hasta terminar con todos los nodos hijos de la 
             //entidad creada.
-            //Debug.WriteLine("Start: FillChilds - " + st.ElapsedMilliseconds);
             foreach (var prop in GetPropertiesList(entity))
             {
                 var childType = prop.PropertyType.GenericTypeArguments[0].GetTypeInfo();
@@ -417,7 +419,7 @@ namespace Bonavena.Dao
 
                 IList lista = null;
 
-                DataBase.ExecuteSPWithResultSet(GetSpName("spNameSelect", TableAtt.PrefixSp, nameRelation), r =>
+                DataBase.ExecuteSPWithResultSet(GetSpName("Select",  nameRelation), r =>
                 {
                     lista = BuildList(childType, r);
 
@@ -428,12 +430,10 @@ namespace Bonavena.Dao
                     SetPropertyValue(prop.Name, lista, entity);
                 }
             }
-            //Debug.WriteLine("End: FillChilds - " + st.ElapsedMilliseconds);
         }
 
         private static IList BuildList(TypeInfo tipo, DbDataReader reader)
         {
-            //Debug.WriteLine("Start: BuildList - " + st.ElapsedMilliseconds);
             IList lista = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(new Type[] { tipo.BaseType }));
 
             if (reader.HasRows)
@@ -446,13 +446,11 @@ namespace Bonavena.Dao
                     lista.Add(instancia);
                 }
             }
-            //Debug.WriteLine("End: BuildList - " + st.ElapsedMilliseconds);
             return lista;
         }
 
         private static void Fill(object entity, IDataReader reader)
         {
-            //Debug.WriteLine("Start: Fill - " + st.ElapsedMilliseconds);
             for (var i = 0; i <= reader.FieldCount - 1; i++)
             {
                 string propiedad = Mapper.GetPropertyName(reader.GetName(i), entity.GetType());
@@ -461,26 +459,19 @@ namespace Bonavena.Dao
                     SetPropertyValue(propiedad, reader[i], entity);
                 }
             }
-            //Debug.WriteLine("End: Fill - " + st.ElapsedMilliseconds);
         }
 
         private static string GetSpName(string nameOperation)
         {
-            //Debug.WriteLine("Start: GetSpName(1) - " + st.ElapsedMilliseconds);
             var TableAtt = typeof(T).GetTypeInfo().GetCustomAttribute<TableAttribute>();
 
-            var prefix = TableAtt.Satellite != SatelliteType.None ? TableAtt.Satellite.GetPrefix() : TableAtt.PrefixSp;
-
-            var res = GetSpName(nameOperation, prefix, typeof(T).Name);
-            //Debug.WriteLine("End: GetSpName(1) - " + st.ElapsedMilliseconds);
+            var res = GetSpName(nameOperation, typeof(T).Name);
             return res;
         }
 
-        private static string GetSpName(string nameOperation, string prefix, string entityName)
+        private static string GetSpName(string nameOperation, string entityName)
         {
-            //Debug.WriteLine("Start: GetSpName(3) - " + st.ElapsedMilliseconds);
-            var res = string.Format(ConfigurationManager.AppSettings[nameOperation], prefix, entityName);
-            //Debug.WriteLine("End: GetSpName(3) - " + st.ElapsedMilliseconds);
+            var res = string.Format(BonavenaConfig.Context.SPTemplate, entityName,nameOperation);
             return res;
         }
 

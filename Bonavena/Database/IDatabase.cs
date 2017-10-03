@@ -11,5 +11,8 @@ namespace Bonavena.Database
         int ExecuteSPNonQuery(string storeProcedureName, Action<DbParameterCollection> fillParameters = null);
         string ExecuteSPScalar(string storeProcedureName, Action<DbParameterCollection> fillParameters = null);
         void ExecuteSPWithResultSet(string storeProcedureName, Action<DbDataReader> action, Action<DbParameterCollection> fillParameters = null);
+
+        DbTransaction BeginTransaction();
+        
     }
 }

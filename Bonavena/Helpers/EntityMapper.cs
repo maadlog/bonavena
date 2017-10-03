@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Bonavena.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
@@ -25,10 +26,10 @@ namespace Bonavena.Helpers
 
             if (split.Length == 1)
             {
-                var Props = TypeEntidad.GetProperties().SelectMany(propertyInfo => propertyInfo.GetCustomAttribute<NameEntityAttribute>())
+                var Props = TypeEntidad.GetProperties().SelectMany(propertyInfo => propertyInfo.GetCustomAttributes<NameEntityAttribute>())
                 .Where(Att =>
                 {
-                    return (Att != null && Att.IdEntity == campo);
+                    return (Att != null && Att.ColumnName == campo);
                 });
 
                 if (!Props.Any()) return string.Empty;
@@ -36,7 +37,7 @@ namespace Bonavena.Helpers
                 if (Props.Count() > 1)
                     throw new Exception(string.Format(MensajeAtributoDuplicado, campo, TypeEntidad.Name));
 
-                return Props.ElementAt(0).NameEntity.Trim();
+                return Props.ElementAt(0).PropertyName.Trim();
             }
             else
             {
@@ -49,10 +50,10 @@ namespace Bonavena.Helpers
 
         public string GetAttributeDBName(string propiedad, Type TypeEntidad)
         {
-            var Props = TypeEntidad.GetProperties().SelectMany(x => Attribute.GetCustomAttributes(x, typeof(NameEntityAttribute)).Select(a => (NameEntityAttribute)a))
+            var Props = TypeEntidad.GetProperties().SelectMany(x => x.GetCustomAttributes<NameEntityAttribute>())
                 .Where(Att =>
                 {
-                    return (Att != null && Att.NameEntity == propiedad);
+                    return (Att != null && Att.PropertyName == propiedad);
                 });
 
             if (!Props.Any()) return string.Empty;
@@ -60,15 +61,15 @@ namespace Bonavena.Helpers
             if (Props.Count() > 1)
                 throw new Exception(string.Format(MensajePropiedadDuplicada, propiedad, TypeEntidad.Name));
 
-            return Props.ElementAt(0).IdEntity.Trim();
+            return Props.ElementAt(0).ColumnName.Trim();
         }
 
         public string[] GetPropertyDBKey(Type TypeEntidad)
         {
-            var Props = TypeEntidad.GetProperties().SelectMany(x => Attribute.GetCustomAttributes(x, typeof(NameEntityAttribute)).Select(a => (NameEntityAttribute)a))
+            var Props = TypeEntidad.GetProperties().SelectMany(x => x.GetCustomAttributes<NameEntityAttribute>())
                 .Where(Att =>
                 {
-                    return (Att != null && Convert.ToBoolean(Att.IsPrimaryKey));
+                    return (Att != null && Convert.ToBoolean(Att.PrimaryKey));
                 });
 
 
@@ -76,7 +77,7 @@ namespace Bonavena.Helpers
 
             for (int i = 0; i < Props.Count(); i++)
             {
-                resultado[i] = Props.ElementAt(i).NameEntity.Trim();
+                resultado[i] = Props.ElementAt(i).PropertyName.Trim();
             }
 
             return resultado;
@@ -94,7 +95,7 @@ namespace Bonavena.Helpers
 
         public string[] GetPropertyDBKeyAndKeyChild(Type TypeEntidad)
         {
-            var Props = TypeEntidad.GetProperties().SelectMany(x => Attribute.GetCustomAttributes(x, typeof(NameEntityAttribute)).Select(a => (NameEntityAttribute)a))
+            var Props = TypeEntidad.GetProperties().SelectMany(x => x.GetCustomAttributes<NameEntityAttribute>())
                .Where(Att =>
                {
                    return (Att != null && Convert.ToBoolean(Att.IsForeingKey));
@@ -104,7 +105,7 @@ namespace Bonavena.Helpers
 
             for (int i = 0; i < Props.Count(); i++)
             {
-                resultado[i] = Props.ElementAt(i).NameEntity.Trim();
+                resultado[i] = Props.ElementAt(i).PropertyName.Trim();
             }
 
             return resultado;

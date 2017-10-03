@@ -14,6 +14,7 @@ namespace Bonavena.Database
         {
             _connection = connection;
         }
+        /*
         private OracleConnection GetConnection()
         {
             //var parameters = System.Web.HttpContext.Current != null ? System.Web.HttpContext.Current.Request.Headers["IP"] : string.Empty;
@@ -23,9 +24,11 @@ namespace Bonavena.Database
 
             return new OracleConnection(connectionString);
         }
-
+        */
         public void ExecuteSPWithResultSet(string storeProcedureName, Action<DbDataReader> action, Action<DbParameterCollection> fillParameters = null)
         {
+            throw new NotImplementedException();
+            /*
             var conn = GetConnection();
 
             if (conn.State != ConnectionState.Open) conn.Open();
@@ -46,10 +49,13 @@ namespace Bonavena.Database
             }
             conn.Close();
             conn.Dispose();
+            */
         }
 
         public int ExecuteSPNonQuery(string storeProcedureName, Action<DbParameterCollection> fillParameters = null)
         {
+            throw new NotImplementedException();
+            /*
             var conn = GetConnection();
 
             if (conn.State != ConnectionState.Open) conn.Open();
@@ -80,10 +86,13 @@ namespace Bonavena.Database
                     return int.Parse(ouputParameter.Value.ToString());
                 }
             }
+            */
         }
 
         public bool ExecuteScriptNonQuery(string script, string @base = "")
         {
+            throw new NotImplementedException();
+            /*
             var conn = GetConnection();
 
             if (conn.State != ConnectionState.Open) conn.Open();
@@ -103,10 +112,13 @@ namespace Bonavena.Database
 
                 return true;
             }
+            */
         }
 
         public string ExecuteSPScalar(string storeProcedureName, Action<DbParameterCollection> fillParameters = null)
         {
+            throw new NotImplementedException();
+            /*
             var conn = GetConnection();
 
             if (conn.State != ConnectionState.Open) conn.Open();
@@ -126,6 +138,15 @@ namespace Bonavena.Database
 
                 return res;
             }
+            */
+        }
+
+        public DbTransaction BeginTransaction()
+        {
+            throw new NotImplementedException();
+            /*
+            return GetConnection().BeginTransaction();
+            */
         }
     }
 }

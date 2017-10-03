@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Bonavena.Configuration;
+using Bonavena.Enumerators;
+using Bonavena.Helpers;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -16,7 +19,7 @@ namespace Bonavena.Database
         }
         private SqlConnection GetConnection()
         {
-            var connectionString = ConnectionStringCreator.SecureCreateSQL(ConfigurationManager.ConnectionStrings[_connection].ConnectionString);
+            var connectionString = ConnectionStringCreator.SecureCreateSQL(BonavenaConfig.Context.conStrings[SQLType.SqlServer]["Default"]);
 
             return new SqlConnection(connectionString);
         }
@@ -144,6 +147,11 @@ namespace Bonavena.Database
                 return res.TrimEnd();
             }
 
+        }
+
+        public DbTransaction BeginTransaction()
+        {
+            return GetConnection().BeginTransaction();
         }
     }
 }
